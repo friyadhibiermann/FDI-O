@@ -1,4 +1,4 @@
-- ESP8266
+-ESP8266
 <ol>
 	<li>atur ssid, password dan ip esp8266/config.lua</li>
 	<pre>
@@ -15,7 +15,7 @@
 		<a>return module</a>
 	</pre>
 </ol>
-- OPENWRT
+-OPENWRT
 <ol>
 	<li>dependent package openwrt, paket yang di butuhkan di openwrt</li>
 	<pre>
