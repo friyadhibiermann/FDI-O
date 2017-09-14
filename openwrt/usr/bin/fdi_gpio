@@ -1,0 +1,317 @@
+#!/bin/bash
+#FUNGSI
+# melepaskan chain gpio 
+help(){
+echo "-------------------------funsi yang tersedia------------------------------"
+echo "config_gpio"
+echo "export_gpio"
+echo "gpio_avriable"
+echo "unbind"
+echo "--------------------------------------------------------------------------"
+}
+unbind(){
+echo "leds-gpio" > /sys/bus/platform/drivers/leds-gpio/unbind > /dev/null 2>&1
+rmmod leds-gpio 
+rmmod gpio-button-hotplug  > /dev/null 2>&1
+echo "" > /etc/config/gpio
+cat > /etc/config/gpio << GP
+config fdi_gpio 'main'
+	option jumlah '0'
+        option gpio ''
+GP
+}
+# meng export gpio yang tersedia
+export_gpio(){
+	for i in `seq 0 30`;do
+		echo $i > /sys/class/gpio/export
+		echo out > /sys/class/gpio/gpio$i/direction
+		if [ "$?" == 1 ]; then
+			echo "gpio sudah di export"
+		else
+			echo -n "[$i] exported,"
+		fi
+	done
+}
+
+# membuat gpio di konfigurasi uci
+config_gpio(){
+echo "---------------------------------------"
+echo "------GPIO YANG TERSEDIA---------------"
+gpio_avriable | sed 's/gpio//'
+echo "---------------------------------------"
+uci -q set gpio.main.ip="192.168.8.1"
+read -p "gpio yang akan di pakai [copas nomer yang gpio nya exp:  12 ] mengerti? [y/n]  :" ANS
+if [ "$ANS" == "Y" ] || [ "$ANS" == "y" ];then
+	read -p "MODE config [esp|openwrt]: " OE
+	case $OE in
+		"openwrt")
+			read -p "jumlah gpio yang akan di export [0-9]  :" jumlah
+			if [ "$jumlah" == "$(echo $jumlah | grep [0-9])" ];then
+				for num in `seq 1 $jumlah`;do
+					read -p "masukan nomer gpio yang tersedia di atas [0-9] gpio $num = :" ans
+					read -p "masukan nomer gpio yang tersedia di atas [Nama] NAMA $num = :" name
+					if [ "$(uci -q get gpio.main.gpio$num | wc -l)" == 1 ];then
+						uci -q set gpio.main.jumlah="$jumlah"
+						uci -q set gpio.main.gpio$num=""
+						uci -q set gpio.main.gpio$num="$ans"
+						uci -q set gpio.main.status$num="0"
+						uci -q set gpio.main.name$num="$name"
+						uci -q set gpio.main.timer$num="1"
+						uci -q set gpio.main.time$num="00:00-00:00"
+						uci commit gpio
+					else
+						uci -q set gpio.main.jumlah="$jumlah"
+						uci -q add_list gpio.main.gpio$num="$ans"
+						uci -q add_list gpio.main.status$num="0"
+						uci -q add_list gpio.main.name$num="$name"
+						uci -q add_list gpio.main.timer$num="1"
+						uci -q add_list gpio.main.time$num="00:00-00:00"
+						uci commit gpio
+					fi
+				done
+				uci -q set gpio.type=openwrt
+				uci -q set gpio.login=auth
+				uci -q set gpio.login.user='admin'
+				uci -q set gpio.login.pass='admin'
+				uci -q set gpio.login.status='true'
+				uci commit gpio
+			else
+				echo "masukan jumlah gpio yang akan di export bukan huruf"
+			fi
+		;;
+		"esp")
+			read -p "jumlah gpio yang akan di export [0-9]  :" jumlah
+			uci -q set gpio.type=esp
+			uci -q set gpio.login=auth
+			uci -q set gpio.login.user='admin'
+			uci -q set gpio.login.pass='admin'
+			uci -q set gpio.login.status='true'
+			uci commit gpio
+			for num in `seq 1 $jumlah`;do
+				read -p "masukan nomer gpio yang tersedia di esp anda [0-9] gpio $num = :" ans
+				read -p "chips id gpio $num: " chid
+				read -p "masukan nomer gpio yang tersedia di atas [Nama] NAMA $num = :" name
+					if [ "$(uci -q get gpio.main.gpio$num | wc -l)" == 1 ];then
+						uci -q set gpio.main.jumlah="$jumlah"
+						uci -q set gpio.main.gpio$num=""
+						uci -q set gpio.main.gpio$num="$ans"
+						uci -q set gpio.main.status$num="0"
+						uci -q set gpio.main.name$num="$name"
+						uci -q set gpio.main.timer$num="1"
+						uci -q set gpio.main.time$num="00:00-00:00"
+						uci commit gpio
+					else
+						uci -q set gpio.main.jumlah="$jumlah"
+						uci -q add_list gpio.main.gpio$num="$ans"
+						uci -q add_list gpio.main.status$num="0"
+						uci -q add_list gpio.main.name$num="$name"
+						uci -q add_list gpio.main.timer$num="1"
+						uci -q add_list gpio.main.time$num="00:00-00:00"
+						uci commit gpio
+					fi
+					uci -q set gpio.type.chipsid$num="$chid"
+			done
+			uci set -q gpio.type.port='8883'
+			uci commit gpio
+			clear
+			mos_restart(){
+				pid=`ps | grep mosquitto | wc -l`
+				if [ $pid -ge 2 ];then
+					killall -9 mosquitto
+					if [ $? = 0 ];then
+						mosquitto -c /etc/mosquitto/mosquitto.conf > /dev/null 2>&1 &
+						echo "default pass mosquitto [admin/admin]"
+						echo "[ENTER]"
+					fi
+				fi
+			}
+			if [ "$(opkg list-installed | grep 'mosquitto' | wc -l)" -gt 3 ];then
+				mosquitto_passwd -b /etc/mosquitto/pwfile admin admin
+				mos_restart
+			else
+				opkg opkg update > /dev/null 2>&1
+				opkg install mosquitto mosquitto-client libmosquitto > /dev/null 2>&1
+				if [ $? = 0 ];then
+					mosquitto_passwd -b /etc/mosquitto/pwfile admin admin
+					mos_restart
+				fi
+			fi
+		;;
+	esac
+elif [ "$ANS" == "N" ] || [ "$ANS" == "n" ];then
+	echo no	
+else
+	echo "konfigurasi di batalkan karena tidak meng-input pilihan"
+fi
+}
+# gpio yang tersedia
+
+gpio_avriable(){
+unbind > /dev/null 2>&1
+export_gpio > /dev/null 2>&1
+GPIO_ELSE=$(cat /sys/kernel/debug/gpio | egrep '\USB|WPS|Reset' | awk -F' ' '{print $1}' | sed 's/-//')
+GPIO_LIST=$(ls /sys/class/gpio/gpio* | grep gpio | sed 's/gpiochip0*.*//g' | sed 's/\/sys\/class\/gpio\///g' | sed 's/://g' | sed 's/ngpio//g' | grep [0-9])
+arr_gp=($GPIO_LIST)
+arr_el=($GPIO_ELSE)
+IFS=' '
+length=${#arr_gp[@]}
+for ((gp=0;gp <= $length;gp++ ));do
+	if [ "${arr_gp[$gp]}" != "" ];then
+		echo "aktif    ${arr_gp[$gp]}"
+		if [ "${arr_el[$gp]}" != "" ];then
+			echo "-- TERPAKAI ${arr_el[$gp]} --"
+		fi
+	else
+		break
+	fi
+done
+}
+#END FUNGSI
+JUM="$(uci -q get gpio.main.jumlah)"
+IP="$(uci -q get gpio.main.ip)"
+if [ -e /dev/video* ];then
+	CCTV="$(ls -l /dev/video* | wc -l)"
+else
+	CCTV="0"
+fi
+MP3="$(cd /www/mp3 && echo -n `printf '"%s", ' * | sed 's/, $//;s/.*/ & /'`)"
+VIDEO="$(cd /www/video && echo -n `printf '"%s", ' * | sed 's/, $//;s/.*/ & /'`)"
+STATUS="$(uci get gpio.login.status)"
+case $1 in
+	'--help')
+	help
+	;;
+	'setup')
+		echo "" > /etc/crontabs/root
+        config_gpio
+		cat /etc/crontabs/root | while read line;do 
+			if grep -q -v "timer.sh";then
+				echo "*/1 * * * * timer.sh" >> /etc/crontabs/root
+				break
+			else
+				cnt="$(cat /etc/crontabs/root | grep timer.sh | wc -l)"
+				if [ "$cnt" -gt 1 ];then
+					sed 's/timer.sh*.*//g' /etc/crontabs/root
+					echo "*/1 * * * * timer.sh" >> /etc/crontabs/root
+					break
+				fi
+			fi
+		done
+		/etc/init.d/cron start
+		/etc/init.d/cron enable
+		if [ -e /etc/config/mjpg-streamer ];then
+			CORE=$(cat mjpg-streamer | grep core | awk -F' ' '{print $3}' | sed "s/'//g")
+			if [ "$CORE" == "core" ];then
+				sed -i 's/core/core1/' mjpg-streamer | grep core
+			fi
+		fi
+		if [ "$?" == 0 ];then
+			echo "--------- uci show gpio # SUKSESSuntuk melihat gpio dalam config uci ----------------"
+		fi
+        ;;
+	'startup')
+		if [ "$(uci get gpio.type)" == "openwrt" ];then
+			export_gpio > /dev/null 2>&1
+			for startup in $(seq 1 $JUM);do
+				G=`uci get gpio.main.gpio$startup`
+				S=`uci get gpio.main.status$startup`
+				echo $S > /sys/class/gpio/gpio$G/value 2>&1
+				uci commit gpio
+			done
+		elif [ "$(uci get gpio.type)" == "esp" ]
+			mos_restart(){
+				pid=`ps | grep mosquitto | wc -l`
+				if [ $pid -ge 2 ];then
+					killall -9 mosquitto
+					if [ $? = 0 ];then
+						mosquitto -c /etc/mosquitto/mosquitto.conf > /dev/null 2>&1 &
+						echo "default pass mosquitto [admin/admin]"
+						echo "[ENTER]"
+					fi
+				elif [ $pid <= 1 ];then
+					mosquitto -c /etc/mosquitto/mosquitto.conf > /dev/null 2>&1 &
+					echo "default pass mosquitto [admin/admin]"
+					echo "[ENTER]"
+				fi
+			}
+			mos_restart
+		fi
+	;;
+	'mos')
+		usr="$(uci get gpio.login.user)"
+		pass="$(uci get gpio.login.pass)"
+		id="$4"
+		mos_port="$(uci get gpio.type.port)"
+		mosquitto_pub -h 127.0.0.1 -u $usr -P $pass -p $mos_port -t "nodemcu/$id" -m "{\"GP\":$2,\"ST\":\"$3\"}"
+	;;
+	'json')
+	prosess(){
+	media_func(){
+		echo -n '"audio": ['
+		echo -n "$MP3"
+		echo -n "],"
+		echo -n '"video":['
+		echo -n "$VIDEO"
+		echo -n "],"
+	}
+	echo -e "{\"ok\":$STATUS,"
+	echo -e "$(media_func)"
+	echo -e "\"jumlah\": \"$JUM\",\"IP\":\"$IP\","
+	echo -e " \"jumlah_cctv\":\"${CCTV}\","
+	if [ -e /dev/video* ];then
+	echo -n "\"cctv\": [ "
+	cctv_func(){
+		for ctv in `seq 1 $CCTV`;do
+			PORT=`uci -q get mjpg-streamer.core$ctv.port`
+			echo -e "{\"nomer\":\"${ctv}\", \"port\":\"$PORT\"},"
+		done
+		echo -e " ],"
+	}
+	ccSUM=`echo "($CCTV*2)" | bc`
+		echo $(cctv_func) | sed "s/\,//${ccSUM}"
+	fi
+	echo -e "\"result\": ["
+	for num in `seq 1 $JUM`;do
+		UCI=$(uci get gpio.main.gpio$num)
+		NAMA=$(uci get gpio.main.name$num | cut -d"'" -f2)
+		stat=$(cat /sys/class/gpio/gpio$UCI/value)
+		Timer=$(uci get gpio.main.timer$num)
+		Time=$(uci get gpio.main.time$num)
+		echo "{ \"gpio\":\"$UCI\", \"stus\": \"$stat\", \"nma\":\"$NAMA\", \"timer\":\"$Timer\", \"time\":\"$Time\" },"
+	done
+	echo -n "]}"
+	}
+	summp3(){
+		STR=($MP3)
+		IFS=","
+		echo ${#STR[@]}
+	}
+	sumvid(){
+		STR=($VIDEO)
+		IFS=","
+		echo ${#STR[@]}
+	}
+		ccSUM=`echo "($CCTV*2)-2" | bc`
+		SUM=`echo "($JUM*5)+6+${ccSUM}+$(summp3)+$(sumvid)" | bc`
+		echo $(prosess) | sed "s/\,//${SUM}"
+		
+	;;
+	*)
+	echo "-----------------------------------FDI GPIO TOOLS--------------------------------------------"
+	echo "fdi gpio tools adalah alat untuk membatu anda dalam pembuatan script yang berhubungan dengan-"
+	echo "gpio, dan anda akan di permudah dengan menggunakan tool ini dalam meng export gpio yang ters-"
+	echo "edia di router openwrt anda."
+	echo "aplikasi yang kami buat ini menggunakan script bash yang ringan bagi anda yang memiliki device"
+	echo "dengan kapasitas rendah... dan sangat ringan dalam merakit project anda nanti"
+	echo "kami pun menediakan WEB GUI bagi anda yang ingin langsung jadi pembuatan script nya dengan -"
+	echo "fasilitas timer web-gui dan cctv webcam"
+	echo "terimakasih untuk menggunakan aplikasi kami"
+	echo "---------------------------------------------------------------------------------------------"
+	echo "fdi_gpio --help				#untuk fungsi yang dapat di panggil daro scrip ini"
+	echo "fdi_gpio json				#untuk siap membuat parsing json pada file /tmp/gpio.json"
+	echo "fdi_gpio setup"
+	echo "fdi_gpio"
+	echo "---------------------------fdi_felexindo@felexindo.online------------------------------------"
+	;;
+esac
+

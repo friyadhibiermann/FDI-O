@@ -1,0 +1,92 @@
+#!/bin/bash
+echo "Content-type: text/html"
+echo ""
+jum=$(uci get jumlah.main.jumlah)
+QUERY=$QUERY_STRING
+IFS="&"
+set -- $QUERY
+array=($@)
+declare -A get_post
+for i in "${array[@]}";do
+IFS="=" ;
+set -- $i;
+get_post[$1]=$2
+done
+if [ "$REQUEST_METHOD" == "POST" ];then
+	QUERY_STRING=$(echo $QUERY_STRING | sed 's/&/ /')
+	if [ ${get_post["status"]} == 'on' ];then 
+				IO="${get_post['gpio']}"
+				UCI_NUM=$(uci show gpio | grep "gpio*.='$IO'" | cut -d'=' -f1 | cut -d'o' -f3)
+				CHID=`uci get gpio.type.chipsid$UCI_NUM`
+				if [ $(uci get gpio.type) == "openwrt" ];then
+					echo '1' > "/sys/class/gpio/gpio$IO/value"
+				elif [ $(uci get gpio.type) == "esp" ];then
+					/usr/bin/./fdi_gpio mos $IO ON $CHID
+				fi
+				uci set gpio.main.status${UCI_NUM}='1'
+				uci commit gpio
+	fi
+	if [ ${get_post["status"]} == 'off' ];then 
+				IO="${get_post['gpio']}"
+				UCI_NUM=$(uci show gpio | grep "gpio*.='$IO'" | cut -d'=' -f1 | cut -d'o' -f3)
+				CHID=`uci get gpio.type.chipsid$UCI_NUM`
+				if [ $(uci get gpio.type) == "openwrt" ];then
+					echo '0' > "/sys/class/gpio/gpio$IO/value"
+				elif [ $(uci get gpio.type) == "esp" ];then
+					/usr/bin/./fdi_gpio mos $IO OFF $CHID
+				fi
+				uci set gpio.main.status${UCI_NUM}='0'
+				uci commit gpio
+	fi
+	if [ ${get_post["timer"]} == '0' ];then 
+				IO="${get_post['gpio']}"
+				UCI_NUM=$(uci show gpio | grep "gpio*.='$IO'" | cut -d'=' -f1 | cut -d'o' -f3)
+				uci set gpio.main.timer${UCI_NUM}='0'
+				uci commit gpio
+	fi
+	if [ ${get_post["timer"]} == '1' ];then 
+				IO="${get_post['gpio']}"
+				UCI_NUM=$(uci show gpio | grep "gpio*.='$IO'" | cut -d'=' -f1 | cut -d'o' -f3)
+				uci set gpio.main.timer${UCI_NUM}='1'
+				uci commit gpio
+	fi
+	if [ ${get_post["value"]} != '' ];then
+			IO="${get_post['gpio']}"
+			UCI_NUM=$(uci show gpio | grep "gpio*.='$IO'" | cut -d'=' -f1 | cut -d'o' -f3)
+			uci set gpio.main.time${UCI_NUM}="${get_post['value']}"
+			uci commit gpio
+	fi
+	if [ ${get_post["nama"]} != '' ];then
+			IO="${get_post['gpio']}"
+			nama=`echo "${get_post['nama']}" | sed 's/%20/ /g'`
+			UCI_NUM=$(uci show gpio | grep "gpio*.='$IO'" | cut -d'=' -f1 | cut -d'o' -f3)
+			uci set gpio.main.name${UCI_NUM}=$nama
+			uci commit gpio
+	fi
+	if [ ${get_post["ip"]} != '' ];then
+			uci set gpio.main.ip="${get_post['ip']}"
+			uci commit gpio
+	fi
+	if [ "${get_post['login']}" == 'valid' ];then
+		user=`uci get gpio.login.user`
+		pass=`uci get gpio.login.pass`
+		stat=`uci get gpio.login.status`
+		echo -n "{ \"ok\":$stat,\"login\": ["
+		echo -n "{\"user\":\"$user\",\"pass\":\"$pass\",\"stat\":\"$accpt\"}"
+		echo -n ']}'
+	fi
+	if [ "${get_post['login']}" == 'set' ];then
+		USER="${get_post['user']}"
+		PASS="${get_post['pass']}"
+		if [ "$USER" != "" ] && [ "$PASS" != "" ];then
+			uci set gpio.login.user=$USER
+			uci set gpio.login.pass=$PASS
+			uci commit gpio
+		fi
+	fi
+elif [ "$REQUEST_METHOD" == "GET" ];then
+	QUERY_STRING=$(echo $QUERY_STRING | sed 's/&/ /')
+	if [ "${get_post['show']}" == 'smarthome' ];then
+		echo $(fdi_gpio json)
+	fi
+fi
