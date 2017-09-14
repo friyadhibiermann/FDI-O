@@ -47,6 +47,9 @@
 		<a>chips id gpio 1: [isi chips id esp8266 anda]</a>
 		<a>masukan nomer gpio yang tersedia di atas [Nama] NAMA 1 = :saklar1</a>
 		<a>[ENTER]</a>
+		<a>mkdir -p /root/mp3 /root/video</a>
+		<a>ln -s /root/mp3 /www/</a>
+		<a>ln -s /root/video /www/</a>
 	</pre>
 	<li>jika anda menggunakan cctv rubah dulu config mjpg-streamer nya</li>
 	<pre>
