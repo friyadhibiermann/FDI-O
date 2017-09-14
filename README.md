@@ -22,6 +22,27 @@
 		<a>opkg update</a>
 		<a>opkg install bash bc mjpg-streamer mosquitto mosquitto-client libmosquitto</a>
 	</pre>
+	- openwrt mosquitto.conf<br>
+cat /etc/mosquitto/mosquitto.conf<br>
+<pre>
+max_queued_messages 200 <br>
+message_size_limit 0 <br>
+allow_zero_length_clientid true <br>
+allow_duplicate_messages false <br>
+listener 8883<br>
+autosave_interval 900<br>
+autosave_on_changes false<br>
+persistence true<br>
+#persistence_file mosquitto.db<br>
+allow_anonymous true<br>
+password_file /etc/mosquitto/pwfile<br>
+</pre>
+- start mosquitto<br>
+<pre>
+opkg install mosquitto mosquitto-client<br>
+mosquitto_passwd -b /etc/mosquitto/pwfile MyUsername MyPassword
+mosquitto -c /etc/mosquitto/mosquitto.conf &<br>
+</pre>
 	<li>setup openwrt fdio</li>
 	<pre>
 		<a>fdi_gpio setup</a>
