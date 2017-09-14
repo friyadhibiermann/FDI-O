@@ -45,12 +45,14 @@
 		<a>chmod 0755 /www/cgi-bin/smarthome</a>
 	</pre>
 	<li>menjalankan jalankan mosquitto</li>
-	<a>fdi_gpio mos 4 ON [chipid] # di saya -> fdi_gpio mos 4 ON 52659</a>
-	<a>#jika led esp nyala script suksesss</a>
-	<a>fdi_gpio json # jika tidak ada error maka bisa di lanjut install aplikasi di android</a>
-	<a>fdi_gpio startup</a>
-	<a>vi /etc/rc.local</a>
-	<a>fdi_gpio startup #agar berjalan saat boot</a>
+	<pre>
+		<a>fdi_gpio mos 4 ON [chipid] # di saya -> fdi_gpio mos 4 ON 52659</a>
+		<a>#jika led esp nyala script suksesss</a>
+		<a>fdi_gpio json # jika tidak ada error maka bisa di lanjut install aplikasi di android</a>
+		<a>fdi_gpio startup</a>
+		<a>vi /etc/rc.local</a>
+		<a>fdi_gpio startup #agar berjalan saat boot</a>
+	</pre>
 </ol>
 
 Fdi-o adalah aplikasi remote control untuk mengendalikan saklar/relay yang terhubung pada GPIO di perangkat/router berbasis OpenWRT.
