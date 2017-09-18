@@ -218,7 +218,7 @@ case $1 in
 				echo $S > /sys/class/gpio/gpio$G/value 2>&1
 				uci commit gpio
 			done
-		elif [ "$(uci get gpio.type)" == "esp" ]
+		elif [ "$(uci get gpio.type)" == "esp" ];then
 			mos_restart(){
 				pid=`ps | grep mosquitto | wc -l`
 				if [ $pid -ge 2 ];then
