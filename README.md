@@ -1,19 +1,16 @@
 -ESP8266
 <ol>
-	<li>atur ssid, password dan ip esp8266/config.lua</li>
-	<pre>
-		<a>local module = {}</a>
-		<br>
-		<a>module.SSID = {}  </a>
-		<a>module.SSID["SSID-OPENWRT"] = "PASWWORD-OPENWRT"</a>
-		<br>
-		<a>module.HOST = "IP-OPENWRT"  </a>
-		<a>module.PORT = 8883  </a>
-		<a>module.ID = node.chipid()</a>
-		<br>
-		<a>module.ENDPOINT = "nodemcu/"  </a>
-		<a>return module</a>
-	</pre>
+<li>atur ssid, password dan ip esp8266/config.lua</li>
+<pre>
+local module = {}
+module.SSID = {}
+module.SSID["SSID-OPENWRT"] = "PASWWORD-OPENWRT"
+module.HOST = "IP-OPENWRT"
+module.PORT = 8883
+module.ID = node.chipid()
+module.ENDPOINT = "nodemcu/"
+return module
+</pre>
 </ol>
 -OPENWRT
 <ol>
