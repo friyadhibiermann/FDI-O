@@ -14,60 +14,46 @@ return module
 </ol>
 -OPENWRT
 <ol>
-	<li>dependent package openwrt, paket yang di butuhkan di openwrt</li>
-	<pre>
-		<a>opkg update</a>
-		<a>opkg install bash bc mjpg-streamer mosquitto mosquitto-client libmosquitto</a>
-	</pre>
-	- openwrt mosquitto.conf<br>
-	cat /etc/mosquitto/mosquitto.conf<br>
-	<pre>
-	max_queued_messages 200 <br>
-	message_size_limit 0 <br>
-	allow_zero_length_clientid true <br>
-	allow_duplicate_messages false <br>
-	listener 8883<br>
-	autosave_interval 900<br>
-	autosave_on_changes false<br>
-	persistence true<br>
-	#persistence_file mosquitto.db<br>
-	allow_anonymous true<br>
-	password_file /etc/mosquitto/pwfile<br>
-	</pre>
-	<li>setup openwrt fdio</li>
-	<pre>
-		<a>fdi_gpio setup</a>
-		<a>gpio yang akan di pakai [copas nomer yang gpio nya exp:  12 ] mengerti? [y/n]  : y</a>
-		<a>MODE config [esp|openwrt]: esp</a>
-		<a>jumlah gpio yang akan di export [0-9]  :1</a>
-		<a>masukan nomer gpio yang tersedia di esp anda [0-9] gpio 1 = :4</a>
-		<a>chips id gpio 1: [isi chips id esp8266 anda]</a>
-		<a>masukan nomer gpio yang tersedia di atas [Nama] NAMA 1 = :saklar1</a>
-		<a>[ENTER]</a>
-		<a>mkdir -p /root/mp3 /root/video</a>
-		<a>ln -s /root/mp3 /www/</a>
-		<a>ln -s /root/video /www/</a>
-	</pre>
-	<li>jika anda menggunakan cctv rubah dulu config mjpg-streamer nya</li>
-	<pre>
-		<a>sed -i 's/core/core1/' /etc/config/mjpg-streamer</a>
-		<a>/etc/init.d/mjpg-streamer restart</a>
-	</pre>
-	<li>rubah semua permition file timer.sh fdi_gpio smarthome 0755</li>
-	<pre>
-		<a>chmod 0755 /usr/bin/fdi_gpio</a>
-		<a>chmod 0755 /usr/bin/timer.sh</a>
-		<a>chmod 0755 /www/cgi-bin/smarthome</a>
-	</pre>
-	<li>menjalankan jalankan mosquitto</li>
-	<pre>
-		<a>fdi_gpio mos 4 ON [chipid] # di saya -> fdi_gpio mos 4 ON 52659</a>
-		<a>#jika led esp nyala script suksesss</a>
-		<a>fdi_gpio json # jika tidak ada error maka bisa di lanjut install aplikasi di android</a>
-		<a>fdi_gpio startup</a>
-		<a>vi /etc/rc.local</a>
-		<a>fdi_gpio startup #agar berjalan saat boot</a>
-	</pre>
+<li>dependent package openwrt, paket yang di butuhkan di openwrt</li>
+<pre>
+opkg update
+opkg install bash bc mjpg-streamer mosquitto mosquitto-client libmosquitto
+</pre>
+- openwrt mosquitto.conf
+<pre>
+cat /etc/mosquitto/mosquitto.conf<br>
+max_queued_messages 200
+message_size_limit 0
+allow_zero_length_clientid true
+allow_duplicate_messages false
+listener 8883
+autosave_interval 900
+autosave_on_changes false
+persistence true
+#persistence_file mosquitto.db
+allow_anonymous true
+password_file /etc/mosquitto/pwfile
+</pre>
+<li>setup openwrt fdio</li>
+<pre>
+fdi_gpio setup
+gpio yang akan di pakai [copas nomer yang gpio nya exp:  12 ] mengerti? [y/n]  : y
+MODE config [esp|openwrt]: esp
+jumlah gpio yang akan di export [0-9]  :1
+masukan nomer gpio yang tersedia di esp anda [0-9] gpio 1 = :4
+chips id gpio 1: [isi chips id esp8266 anda]
+masukan nomer gpio yang tersedia di atas [Nama] NAMA 1 = :saklar1
+[ENTER]
+</pre>
+<li>menjalankan jalankan mosquitto</li>
+<pre>
+fdi_gpio mos 4 ON [chipid] # di saya -> fdi_gpio mos 4 ON 52659
+#jika led esp nyala script suksesss
+fdi_gpio json # jika tidak ada error maka bisa di lanjut install aplikasi di android
+fdi_gpio startup
+vi /etc/rc.local
+fdi_gpio startup #agar berjalan saat boot
+</pre>
 </ol>
 
 Fdi-o adalah aplikasi remote control untuk mengendalikan saklar/relay yang terhubung pada GPIO di perangkat/router berbasis OpenWRT.
